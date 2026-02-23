@@ -4,7 +4,7 @@ This is a little agario-like that I made for fun and to try out c3.
 
 Overall it's a quite good language ! 💯
 
-The player is not quite playable though. Perhaps maybe I will re-write it more seriously lol
+The game is not quite playable though. Perhaps maybe I will re-write it more seriously lol
 
 ## Compile
 
