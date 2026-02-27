@@ -22,7 +22,7 @@ uint inner_height;
 const raylib::Color BACKGROUND_COLOR = {120, 120, 120, 255};
 const raylib::Color WALL_COLOR = {255, 255, 255, 255}; 
 
-const uint NUM_ENEMIES = 2;
+const uint NUM_ENEMIES = 5;
 
 const float POINTS_TO_RADIUS_COEF = 0.01;
 const float PLAYER_SPEED = 90f;
@@ -261,8 +261,10 @@ fn Player enemy_make() {
 fn void Player.enemy_update(Player* enemy) {
 
   Vector2 where_to_go;
-  float min_distance = (float) WORLD_SIZE;
-  
+  Vector2 food_where_to_go;
+
+  float min_distance_food = (float) WORLD_SIZE;
+    
   for (int i; i < number_of_food; i++) {
 
     Ball* food = &all_food[i];
@@ -277,24 +279,31 @@ fn void Player.enemy_update(Player* enemy) {
             food.center[1] - enemy.ball.center[1]
         };
         float distance = way_there.length();
-        if (distance < min_distance) {
-          where_to_go = way_there;
-          min_distance = distance;
+        if (distance < min_distance_food) {
+          food_where_to_go = way_there;
+          min_distance_food = distance;
         }
       }
     }
   }
   
   Vector2 pvp_where_to_go = {0f, 0f};
+  float min_distance_other_enemy = (float) WORLD_SIZE;
   foreach (&other_enemy : enemies) {
     if (other_enemy.alive) {
+
+      float distance_other_enemy = enemy.ball.center.distance(other_enemy.ball.center);
       if (
-        enemy.ball.center.distance(other_enemy.ball.center) > 200
+        distance_other_enemy < 200
         && enemy.ball.points > other_enemy.ball.points
-      ) pvp_where_to_go = {
-            other_enemy.ball.center.x - enemy.ball.center.x,
-            other_enemy.ball.center.y - enemy.ball.center.y
-        };
+        && distance_other_enemy < min_distance_other_enemy
+      ) {
+            pvp_where_to_go = {
+                other_enemy.ball.center.x - enemy.ball.center.x,
+                other_enemy.ball.center.y - enemy.ball.center.y
+            };
+            min_distance_other_enemy = distance_other_enemy;
+        }
 
       if (enemy.ball.overlaps(&other_enemy.ball)) {
         enemy.eat_player(other_enemy);
@@ -302,8 +311,14 @@ fn void Player.enemy_update(Player* enemy) {
     }
   }
 
+  if (min_distance_other_enemy < min_distance_food) {
+    where_to_go = pvp_where_to_go;  
+  } else {
+    where_to_go = food_where_to_go;
+  }
+  
   // move the player
-  enemy.ball.center += (where_to_go + pvp_where_to_go).normalize() * ENEMY_SPEED * delta_time; 
+  enemy.ball.center += where_to_go.normalize() * ENEMY_SPEED * delta_time; 
   enemy.ball.clip_position();
 }
 
