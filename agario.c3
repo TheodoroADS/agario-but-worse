@@ -22,7 +22,7 @@ uint inner_height;
 const raylib::Color BACKGROUND_COLOR = {120, 120, 120, 255};
 const raylib::Color WALL_COLOR = {255, 255, 255, 255}; 
 
-const uint NUM_ENEMIES = 5;
+const uint NUM_ENEMIES = 7;
 
 const float POINTS_TO_RADIUS_COEF = 0.01;
 const float PLAYER_SPEED = 90f;
@@ -258,7 +258,7 @@ fn Player enemy_make() {
   };
 }
 
-fn void Player.enemy_update(Player* enemy) {
+fn void Player.player_update(Player* enemy) {
 
   Vector2 where_to_go;
   Vector2 food_where_to_go;
@@ -289,7 +289,7 @@ fn void Player.enemy_update(Player* enemy) {
   
   Vector2 pvp_where_to_go = {0f, 0f};
   float min_distance_other_enemy = (float) WORLD_SIZE;
-  foreach (&other_enemy : enemies) {
+  foreach (&other_enemy : players) {
     if (other_enemy.alive) {
 
       float distance_other_enemy = enemy.ball.center.distance(other_enemy.ball.center);
@@ -331,14 +331,45 @@ TODOS
 */
 
 Ball[MAX_ACTIVE_FOOD] all_food;
-Player[NUM_ENEMIES] enemies;
+Player[NUM_ENEMIES + 1] players;
 float delta_time;
 int number_of_food;
+
+const int GAME_OVER_FONT_SIZE = 80;
+const Color GAME_OVER_BACKGROUND_COLOR = {0, 0, 0, 0};
+
+fn bool game_over_mode() {
+
+    raylib::begin_drawing();
+    raylib::clear_background(GAME_OVER_BACKGROUND_COLOR);
+    String you_died = "You died !";
+    String instructions = "Quit with escape or q then restart game to play again";
+    Vector2 you_died_text_size = raylib::measure_text_ex(raylib::get_font_default(), you_died, GAME_OVER_FONT_SIZE, 20f); 
+    int instructions_text_width = raylib::measure_text(instructions, GAME_OVER_FONT_SIZE); // just need the width for this one for now
+    int pos_x_you_died = 20;
+    int pos_y_you_died = height / 2 - (int) you_died_text_size[1];
+    int pos_x_instructions = 20;
+    int pos_y_instructions = height / 2 + (int) you_died_text_size[1];
+
+    raylib::draw_text(you_died, pos_x_you_died, pos_y_you_died, GAME_OVER_FONT_SIZE, {255,255,255,255});
+    raylib::draw_text(instructions, pos_x_instructions, pos_y_instructions, GAME_OVER_FONT_SIZE, {255,255,255,255});
+    raylib::end_drawing();
+
+    return raylib::is_key_down(raylib::KEY_ESCAPE) || raylib::is_key_down(raylib::KEY_Q);
+    
+}
 
 fn void main() {
 
     raylib::init_window(width, height, "Agario but worse");
     number_of_food = raylib::get_random_value(MIN_ACTIVE_FOOD, MAX_ACTIVE_FOOD);  
+
+    raylib::Camera2D camera = {
+        .target = {WORLD_WIDTH /2, WORLD_HEIGTH / 2},
+        .offset = {0,0}, // will update during game loop
+        .rotation = 0.0f,
+        .zoom = 2.0f 
+    };
 
     for (int i = 0; i <= number_of_food; i++) {
         Ball food = make_random_ball();
@@ -353,22 +384,19 @@ fn void main() {
         .active = true
     };
 
-    raylib::Camera2D camera = {
-        .target = {player_ball.center[0],player_ball.center[1]},
-        .offset = {0,0}, // will update during game loop
-        .rotation = 0.0f,
-        .zoom = 2.0f 
-    };
-
-    Player player = {
+    Player main_player = {
         .name = "Teco",
         .ball = player_ball,
         .alive = true
     };
+
+    players[0] = main_player;
+
+    Player* player = &players[0];
    
-    // initialize enemies
-    for (int i = 0; i < enemies.len; i++) {
-      enemies[i] = enemy_make();
+    // initialize players
+    for (int i = 1; i < players.len; i++) {
+      players[i] = enemy_make();
     } 
 
     raylib::set_target_fps(60);
@@ -383,6 +411,15 @@ fn void main() {
         camera.offset[1] = (float) height / 2;
         delta_time = raylib::get_frame_time();
 
+        if (!player.alive) {
+            bool exit_requested = game_over_mode();
+            if (exit_requested) {
+                break;
+            } else {
+                continue;
+            }
+        }
+        
         if (raylib::is_key_down(raylib::KEY_A) || raylib::is_key_down(raylib::KEY_LEFT)) {
             player.ball.center[0] -= PLAYER_SPEED*delta_time;
         }
@@ -400,7 +437,7 @@ fn void main() {
         }
 
         player.ball.clip_position();
-
+        
         raylib::begin_drawing();
         raylib::begin_mode_2d(camera); // where the magic happens
         // let's say that is the color of the wall
@@ -412,9 +449,12 @@ fn void main() {
             try_spawn_food(&number_of_food);
         }
         
-        foreach (&enemy : enemies) {
+        for (int i = 1; i < players.len; i++) {
+
+          Player* enemy = &players[i];
+
           if (enemy.alive) {
-            enemy.enemy_update();
+            enemy.player_update();
             if (player.ball.overlaps(&enemy.ball)) {
               player.eat_player(enemy);
             } 

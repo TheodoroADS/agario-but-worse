@@ -36,7 +36,52 @@ extern fn void draw_circle_v(Vector2 center, float radius, Color color) @extern(
 extern fn void draw_rectangle_v(Vector2 center, Vector2 size, Color color) @extern("DrawRectangleV");
 
 // text
+// I have to declare a bunch of stuff here so I will just copy and paste from raylib.h
+struct Rectangle {
+        float x;                // Rectangle top-left corner position x
+        float y;                // Rectangle top-left corner position y
+        float width;            // Rectangle width
+        float height;           // Rectangle height
+}
+
+struct Image {
+            void *data;             // Image raw data
+            int width;              // Image base width
+            int height;             // Image base height
+            int mipmaps;            // Mipmap levels, 1 by default
+            int format;             // Data format (PixelFormat type)
+}
+
+struct GlyphInfo {
+        int value;              // Character value (Unicode)
+        int offsetX;            // Character offset X when drawing
+        int offsetY;            // Character offset Y when drawing
+        int advanceX;           // Character advance position X
+        Image image;            // Character image data
+}
+
+struct Texture {
+            uint id;        // OpenGL texture id
+            int width;              // Texture base width
+            int height;             // Texture base height
+            int mipmaps;            // Mipmap levels, 1 by default
+            int format;             // Data format (PixelFormat type)
+}
+
+alias Texture2D = Texture;
+
+struct Font {
+        int baseSize;           // Base size (default chars height)
+        int glyphCount;         // Number of glyph characters
+        int glyphPadding;       // Padding around the glyph characters
+        Texture2D texture;      // Texture atlas containing the glyphs
+        Rectangle *recs;        // Rectangles in texture for the glyphs
+        GlyphInfo *glyphs;      // Glyphs info data
+}
+
+extern fn Font get_font_default() @extern("GetFontDefault");
 extern fn int measure_text(char* text, int fontsize) @extern("MeasureText");
+extern fn Vector2 measure_text_ex(Font font, char* text, float fontSize, float spacing) @extern("MeasureTextEx");
 extern fn void draw_text(char* text, int posX, int posY, int fontSize, Color color) @extern("DrawText");
 
 // keys
@@ -51,6 +96,9 @@ const int KEY_RIGHT = 262;
 const int KEY_LEFT = 263;
 const int KEY_DOWN = 264;
 const int KEY_UP = 265;
+const int KEY_ESCAPE = 256;
+const int KEY_Q = 81;
+const int KEY_R = 82;
 
 // utils
 extern fn int get_random_value(int min, int max) @extern("GetRandomValue");
